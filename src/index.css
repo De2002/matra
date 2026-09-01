@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --scruttin-yellow: #fcf9db;
+    --scruttin-yellow-dark: #f5f0b8;
+    --scruttin-border: #d4cfad;
+  }
+}
+
+/* Custom Themes */
+.theme-scruttin-classic {
+  --bg-app: #f4f4f0;
+  --bg-toolbar: #fcf9db;
+  --bg-toolbar-hover: #f3eeaf;
+  --border-toolbar: #dcd7ad;
+  --bg-sidebar: #f8f8f4;
+  --bg-viewer: #e8e8e4;
+  --text-main: #202020;
+  --text-muted: #666666;
+  --accent: #0284c7;
+}
+
+.theme-dark {
+  --bg-app: #18181b;
+  --bg-toolbar: #27272a;
+  --bg-toolbar-hover: #3f3f46;
+  --border-toolbar: #3f3f46;
+  --bg-sidebar: #1f1f23;
+  --bg-viewer: #09090b;
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --accent: #38bdf8;
+}
+
+.theme-sepia {
+  --bg-app: #f4ecd8;
+  --bg-toolbar: #ebe1c5;
+  --bg-toolbar-hover: #ded3b2;
+  --border-toolbar: #cbbf9c;
+  --bg-sidebar: #efe7d2;
+  --bg-viewer: #e0d6bc;
+  --text-main: #433422;
+  --text-muted: #79664e;
+  --accent: #b45309;
+}
+
+.theme-nord {
+  --bg-app: #2e3440;
+  --bg-toolbar: #3b4252;
+  --bg-toolbar-hover: #434c5e;
+  --border-toolbar: #4c566a;
+  --bg-sidebar: #3b4252;
+  --bg-viewer: #242933;
+  --text-main: #eceff4;
+  --text-muted: #d8dee9;
+  --accent: #88c0d0;
+}
+
+.theme-solarized-dark {
+  --bg-app: #002b36;
+  --bg-toolbar: #073642;
+  --bg-toolbar-hover: #0d4654;
+  --border-toolbar: #586e75;
+  --bg-sidebar: #073642;
+  --bg-viewer: #001e26;
+  --text-main: #93a1a1;
+  --text-muted: #657b83;
+  --accent: #2aa198;
+}
+
+.theme-high-contrast {
+  --bg-app: #000000;
+  --bg-toolbar: #111111;
+  --bg-toolbar-hover: #222222;
+  --border-toolbar: #ffffff;
+  --bg-sidebar: #050505;
+  --bg-viewer: #000000;
+  --text-main: #ffffff;
+  --text-muted: #dddddd;
+  --accent: #ffff00;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.35);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.55);
+}
+
+/* PDF Canvas rendering */
+.pdf-page-canvas {
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease-out;
+}
+
+/* Super-Themes & Smart Invert Filters */
+.supertheme-smart-invert .pdf-page-canvas,
+.supertheme-smart-invert .epub-content,
+.supertheme-smart-invert .comic-page-img {
+  filter: invert(0.9) hue-rotate(180deg) contrast(0.95) brightness(0.95);
+}
+
+.supertheme-amoled .pdf-page-canvas,
+.supertheme-amoled .epub-content,
+.supertheme-amoled .comic-page-img {
+  filter: invert(1) contrast(1.1) brightness(0.9);
+}
+
+.supertheme-sepia-paper .pdf-page-canvas,
+.supertheme-sepia-paper .epub-content,
+.supertheme-sepia-paper .comic-page-img {
+  filter: sepia(0.4) contrast(0.95) brightness(0.96);
+}
+
+.supertheme-dracula .pdf-page-canvas,
+.supertheme-dracula .epub-content,
+.supertheme-dracula .comic-page-img {
+  filter: invert(0.88) hue-rotate(220deg) contrast(1.05);
+}
+
+.supertheme-solarized-dark .pdf-page-canvas,
+.supertheme-solarized-dark .epub-content,
+.supertheme-solarized-dark .comic-page-img {
+  filter: invert(0.9) hue-rotate(145deg) contrast(0.95);
+}
+
+.supertheme-matrix-green .pdf-page-canvas,
+.supertheme-matrix-green .epub-content,
+.supertheme-matrix-green .comic-page-img {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(90deg);
+}
+
+/* E-Book EPUB Fonts */
+.font-ebook-serif {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+}
+.font-ebook-sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.font-ebook-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.font-ebook-dyslexic {
+  font-family: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+}
+
+/* Text Selection Layer */
+.text-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.25;
+  line-height: 1;
+  user-select: text;
+}
+.text-layer > span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.text-layer ::selection {
+  background: rgba(0, 102, 255, 0.45);
+}

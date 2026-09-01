@@ -1,0 +1,6 @@
+{
+  "name": "Scruttin",
+  "description": "Fast multi-format document reader and PDF tool suite with AI Chat, PDF tools, themes, and annotations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

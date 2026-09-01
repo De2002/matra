@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // Ensure window.fetch, Window.prototype.fetch, and globalThis.fetch have a proper setter
+      // preventing "TypeError: Cannot set property fetch of #<Window> which has only a getter"
+      (function () {
+        try {
+          var initialFetch = typeof window !== 'undefined' && window.fetch ? window.fetch.bind(window) : null;
+          var currentFetch = initialFetch;
+
+          var fetchDescriptor = {
+            get: function () {
+              return currentFetch;
+            },
+            set: function (fn) {
+              currentFetch = fn;
+            },
+            configurable: true,
+            enumerable: true,
+          };
+
+          if (typeof window !== 'undefined') {
+            try {
+              Object.defineProperty(window, 'fetch', fetchDescriptor);
+            } catch (_) {}
+          }
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            try {
+              Object.defineProperty(Window.prototype, 'fetch', fetchDescriptor);
+            } catch (_) {}
+          }
+          if (typeof globalThis !== 'undefined' && globalThis !== window) {
+            try {
+              Object.defineProperty(globalThis, 'fetch', fetchDescriptor);
+            } catch (_) {}
+          }
+          if (typeof self !== 'undefined' && self !== window) {
+            try {
+              Object.defineProperty(self, 'fetch', fetchDescriptor);
+            } catch (_) {}
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <link rel="icon" type="image/png" href="/appx/fileicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scruttin</title>
+    <meta name="description" content="Fast multi-format document reader and PDF tool suite with AI Chat, PDF tools, themes, and annotations." />
+    <meta property="og:title" content="Scruttin" />
+    <meta property="og:description" content="Fast multi-format document reader and PDF tool suite with AI Chat, PDF tools, themes, and annotations." />
+  </head>
+  <body class="bg-stone-100 text-stone-900 antialiased overflow-hidden select-none">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
