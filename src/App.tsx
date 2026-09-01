@@ -426,6 +426,37 @@ export function App() {
     window.print();
   };
 
+  // Document Tab Actions & Renaming
+  const handleRenameDocument = (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, name: trimmed } : d))
+    );
+
+    // Update in recents if present
+    setRecents((prev) => {
+      const updated = prev.map((r) => (r.id === id ? { ...r, name: trimmed } : r));
+      try {
+        localStorage.setItem('scruttin_recents', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to update recents storage:', e);
+      }
+      return updated;
+    });
+  };
+
+  const handleCloseOtherDocs = (keepId: string) => {
+    setDocuments((prev) => prev.filter((d) => d.id === keepId));
+    setActiveDocId(keepId);
+  };
+
+  const handleCloseAllDocs = () => {
+    setDocuments([]);
+    setActiveDocId(null);
+  };
+
   // Tab Close
   const handleCloseDoc = (id: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
@@ -625,6 +656,14 @@ export function App() {
       } else if (e.key === 'F1') {
         e.preventDefault();
         setCommandPaletteOpen(true);
+      } else if (e.key === 'F2') {
+        if (activeDoc) {
+          e.preventDefault();
+          const newName = prompt('Rename Document:', activeDoc.name);
+          if (newName && newName.trim()) {
+            handleRenameDocument(activeDoc.id, newName.trim());
+          }
+        }
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
         e.preventDefault();
         handleOpenFile();
@@ -666,6 +705,14 @@ export function App() {
   // Command Palette Items
   const commands: CommandItem[] = [
     { id: 'open', title: 'Open Document...', category: 'File', shortcut: 'Ctrl+O', action: handleOpenFile },
+    { id: 'rename', title: 'Rename Active Document...', category: 'File', shortcut: 'F2', action: () => {
+      if (activeDoc) {
+        const newName = prompt('Rename Document:', activeDoc.name);
+        if (newName && newName.trim()) {
+          handleRenameDocument(activeDoc.id, newName.trim());
+        }
+      }
+    }},
     { id: 'save', title: 'Save / Download Document', category: 'File', shortcut: 'Ctrl+S', action: handleSaveFile },
     { id: 'print', title: 'Print Document', category: 'File', shortcut: 'Ctrl+P', action: handlePrint },
     { id: 'tools', title: 'PDF Tools Suite (Merge, Split, Rotate, Convert)', category: 'Tools', shortcut: 'Ctrl+Shift+T', action: () => setPdfToolsOpen(true) },
@@ -717,6 +764,9 @@ export function App() {
           if (doc) setCurrentPage(doc.currentPage || 1);
         }}
         onCloseDoc={handleCloseDoc}
+        onCloseOtherDocs={handleCloseOtherDocs}
+        onCloseAllDocs={handleCloseAllDocs}
+        onRenameDoc={handleRenameDocument}
         onOpenFile={handleOpenFile}
         onSaveFile={handleSaveFile}
         onPrint={handlePrint}
@@ -781,6 +831,7 @@ export function App() {
                 setCurrentPage(rec.lastPage);
               }
             }}
+            onRenameDocument={handleRenameDocument}
             onClose={() => setSidebarOpen(false)}
           />
         )}

@@ -35,7 +35,12 @@ import {
   FileCode,
   CheckSquare,
   Moon,
-  Sun
+  Sun,
+  Pencil,
+  Copy,
+  MinusCircle,
+  Trash2,
+  Check
 } from 'lucide-react';
 import { LoadedDocument, ViewMode, ThemeName, SuperTheme, ScruttinSettings } from '../types';
 
@@ -44,6 +49,9 @@ interface ToolbarProps {
   activeDocId: string | null;
   onSelectDoc: (id: string) => void;
   onCloseDoc: (id: string) => void;
+  onCloseOtherDocs?: (keepId: string) => void;
+  onCloseAllDocs?: () => void;
+  onRenameDoc?: (id: string, newName: string) => void;
   onOpenFile: () => void;
   onSaveFile: () => void;
   onPrint: () => void;
@@ -92,6 +100,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   activeDocId,
   onSelectDoc,
   onCloseDoc,
+  onCloseOtherDocs,
+  onCloseAllDocs,
+  onRenameDoc,
   onOpenFile,
   onSaveFile,
   onPrint,
@@ -139,10 +150,64 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [zoomDropdownOpen, setZoomDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Tab Rename & Context Menu State
+  const [tabContextMenu, setTabContextMenu] = useState<{ doc: LoadedDocument; x: number; y: number } | null>(null);
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [editingTabName, setEditingTabName] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Sync page input when page changes externally
   React.useEffect(() => {
     setPageInput(currentPage.toString());
   }, [currentPage]);
+
+  // Click outside and escape handler for tab context menu
+  React.useEffect(() => {
+    const handleClickOutside = () => setTabContextMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setTabContextMenu(null);
+        setEditingTabId(null);
+      }
+    };
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleStartRenameTab = (doc: LoadedDocument) => {
+    setEditingTabId(doc.id);
+    setEditingTabName(doc.name);
+    setTabContextMenu(null);
+  };
+
+  const handleSaveRenameTab = (docId: string) => {
+    if (editingTabName.trim() && onRenameDoc) {
+      onRenameDoc(docId, editingTabName.trim());
+    }
+    setEditingTabId(null);
+  };
+
+  const handleCopyDocName = (doc: LoadedDocument) => {
+    navigator.clipboard.writeText(doc.name).then(() => {
+      setToastMessage(`Copied "${doc.name}"`);
+      setTimeout(() => setToastMessage(null), 2000);
+    }).catch(() => {});
+    setTabContextMenu(null);
+  };
+
+  const handleTabContextMenu = (e: React.MouseEvent, doc: LoadedDocument) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTabContextMenu({
+      doc,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
 
   const handlePageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,24 +242,105 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <header className="flex flex-col border-b border-[var(--border-toolbar)] bg-[var(--bg-toolbar)] select-none z-30 transition-colors duration-150 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-stone-900/90 text-white text-xs px-3 py-1.5 rounded-full shadow-lg border border-stone-700 animate-in fade-in slide-in-from-top-2">
+          {toastMessage}
+        </div>
+      )}
+
       {/* Top Document Tabs Bar */}
       {documents.length > 0 && (
         <div className="flex items-center px-2 pt-1 gap-1 overflow-x-auto no-scrollbar border-b border-black/5 bg-black/5">
           {documents.map((doc) => {
             const isActive = doc.id === activeDocId;
+            const isEditing = editingTabId === doc.id;
+
+            if (isEditing) {
+              return (
+                <div
+                  key={doc.id}
+                  id={`tab-editing-${doc.id}`}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-[var(--bg-toolbar)] text-[var(--text-main)] rounded-t-md border-t border-x border-[var(--border-toolbar)] shadow-xs z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <FileText className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                  <input
+                    id={`input-tab-rename-${doc.id}`}
+                    type="text"
+                    value={editingTabName}
+                    onChange={(e) => setEditingTabName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveRenameTab(doc.id);
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setEditingTabId(null);
+                      }
+                    }}
+                    onBlur={() => handleSaveRenameTab(doc.id)}
+                    autoFocus
+                    className="px-1.5 py-0.5 text-xs bg-white dark:bg-stone-900 border border-blue-500 rounded focus:outline-none ring-1 ring-blue-500 w-36 sm:w-48 text-[var(--text-main)]"
+                    placeholder="Document Name"
+                  />
+                  <button
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSaveRenameTab(doc.id);
+                    }}
+                    className="p-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                    title="Save (Enter)"
+                  >
+                    <Check className="w-3 h-3" />
+                  </button>
+                  <button
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setEditingTabId(null);
+                    }}
+                    className="p-1 rounded hover:bg-black/10 text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                    title="Cancel (Esc)"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={doc.id}
                 id={`tab-${doc.id}`}
                 onClick={() => onSelectDoc(doc.id)}
-                className={`group flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-t-md transition-all cursor-pointer max-w-[160px] sm:max-w-[220px] shrink-0 ${
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handleStartRenameTab(doc);
+                }}
+                onContextMenu={(e) => handleTabContextMenu(e, doc)}
+                className={`group flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-t-md transition-all cursor-pointer max-w-[160px] sm:max-w-[220px] shrink-0 relative ${
                   isActive
                     ? 'bg-[var(--bg-toolbar)] text-[var(--text-main)] shadow-xs border-t border-x border-[var(--border-toolbar)]'
                     : 'text-[var(--text-muted)] hover:bg-white/40 hover:text-[var(--text-main)]'
                 }`}
+                title={`${doc.name}\n• Right-click for tab context menu\n• Double-click to rename`}
               >
                 <FileText className="w-3.5 h-3.5 shrink-0 opacity-70" />
                 <span className="truncate flex-1 text-[11px] sm:text-xs">{doc.name}</span>
+                
+                {/* Rename Pencil button on tab hover */}
+                <button
+                  id={`btn-tab-rename-${doc.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartRenameTab(doc);
+                  }}
+                  className="p-0.5 rounded hover:bg-black/10 text-[var(--text-muted)] hover:text-blue-600 dark:hover:text-blue-400 transition-opacity opacity-0 group-hover:opacity-70 hover:!opacity-100"
+                  title="Rename Document (Double-click or F2)"
+                >
+                  <Pencil className="w-2.5 h-2.5" />
+                </button>
+
                 <button
                   id={`close-tab-${doc.id}`}
                   onClick={(e) => {
@@ -217,6 +363,85 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <Plus className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Tab Context Menu */}
+      {tabContextMenu && (
+        <div
+          id="tab-context-menu"
+          style={{
+            top: `${Math.min(tabContextMenu.y, window.innerHeight - 220)}px`,
+            left: `${Math.min(tabContextMenu.x, window.innerWidth - 220)}px`,
+          }}
+          className="fixed z-50 min-w-[200px] bg-stone-900 text-stone-100 rounded-xl shadow-2xl border border-stone-700 py-1.5 text-xs backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 select-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-1.5 border-b border-stone-800 text-[11px] text-amber-400 font-semibold truncate flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">{tabContextMenu.doc.name}</span>
+          </div>
+          
+          <button
+            id="ctx-rename-doc"
+            onClick={() => handleStartRenameTab(tabContextMenu.doc)}
+            className="w-full px-3 py-2 text-left flex items-center gap-2.5 hover:bg-amber-600 hover:text-white transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-medium">Rename Document...</span>
+            <span className="ml-auto text-[10px] opacity-60">F2</span>
+          </button>
+
+          <button
+            id="ctx-copy-name"
+            onClick={() => handleCopyDocName(tabContextMenu.doc)}
+            className="w-full px-3 py-1.5 text-left flex items-center gap-2.5 hover:bg-stone-800 hover:text-white transition-colors"
+          >
+            <Copy className="w-3.5 h-3.5 text-stone-400" />
+            <span>Copy Document Name</span>
+          </button>
+
+          <div className="my-1 border-t border-stone-800" />
+
+          <button
+            id="ctx-close-tab"
+            onClick={() => {
+              onCloseDoc(tabContextMenu.doc.id);
+              setTabContextMenu(null);
+            }}
+            className="w-full px-3 py-1.5 text-left flex items-center gap-2.5 hover:bg-rose-900/60 text-rose-300 hover:text-white transition-colors"
+          >
+            <X className="w-3.5 h-3.5 text-rose-400" />
+            <span>Close Tab</span>
+          </button>
+
+          {documents.length > 1 && onCloseOtherDocs && (
+            <button
+              id="ctx-close-other-tabs"
+              onClick={() => {
+                onCloseOtherDocs(tabContextMenu.doc.id);
+                setTabContextMenu(null);
+              }}
+              className="w-full px-3 py-1.5 text-left flex items-center gap-2.5 hover:bg-stone-800 hover:text-white transition-colors"
+            >
+              <MinusCircle className="w-3.5 h-3.5 text-stone-400" />
+              <span>Close Other Tabs</span>
+            </button>
+          )}
+
+          {onCloseAllDocs && (
+            <button
+              id="ctx-close-all-tabs"
+              onClick={() => {
+                onCloseAllDocs();
+                setTabContextMenu(null);
+              }}
+              className="w-full px-3 py-1.5 text-left flex items-center gap-2.5 hover:bg-stone-800 hover:text-white transition-colors text-stone-400 hover:text-stone-200"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-stone-500" />
+              <span>Close All Tabs</span>
+            </button>
+          )}
         </div>
       )}
 

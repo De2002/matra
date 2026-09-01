@@ -11,7 +11,9 @@ import {
   ChevronDown,
   X,
   ExternalLink,
-  Plus
+  Plus,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { LoadedDocument, DocumentOutlineItem, Annotation, Bookmark, RecentDocument } from '../types';
 
@@ -27,6 +29,7 @@ interface SidebarProps {
   onDeleteBookmark: (id: string) => void;
   recents: RecentDocument[];
   onOpenRecent: (doc: RecentDocument) => void;
+  onRenameDocument?: (id: string, newName: string) => void;
   onClose: () => void;
 }
 
@@ -44,9 +47,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteBookmark,
   recents,
   onOpenRecent,
+  onRenameDocument,
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('thumbnails');
+  const [isEditingSidebarName, setIsEditingSidebarName] = useState(false);
+  const [editNameInput, setEditNameInput] = useState('');
+
+  const handleStartRename = () => {
+    if (!document) return;
+    setEditNameInput(document.name);
+    setIsEditingSidebarName(true);
+  };
+
+  const handleSaveSidebarName = () => {
+    if (document && editNameInput.trim() && onRenameDocument) {
+      onRenameDocument(document.id, editNameInput.trim());
+    }
+    setIsEditingSidebarName(false);
+  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -136,6 +155,66 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Quick Active Document Header with Rename Trigger */}
+          {document && (
+            <div className="px-2.5 py-1.5 border-t border-black/5 bg-black/5 flex items-center justify-between gap-1.5">
+              {isEditingSidebarName ? (
+                <div className="flex items-center gap-1 w-full animate-in fade-in">
+                  <input
+                    id="input-sidebar-quick-rename"
+                    type="text"
+                    value={editNameInput}
+                    onChange={(e) => setEditNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveSidebarName();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setIsEditingSidebarName(false);
+                      }
+                    }}
+                    autoFocus
+                    placeholder="Enter document name..."
+                    className="flex-1 px-2 py-1 text-xs rounded border border-blue-500 bg-white dark:bg-stone-900 text-[var(--text-main)] focus:outline-none ring-1 ring-blue-500 min-w-0"
+                  />
+                  <button
+                    id="btn-sidebar-save-rename"
+                    onClick={handleSaveSidebarName}
+                    className="p-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-xs"
+                    title="Save (Enter)"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    id="btn-sidebar-cancel-rename"
+                    onClick={() => setIsEditingSidebarName(false)}
+                    className="p-1 rounded bg-stone-500 hover:bg-stone-600 text-white shrink-0"
+                    title="Cancel (Esc)"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5 truncate flex-1 min-w-0" title={document.name}>
+                    <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="truncate font-semibold text-[11px] text-[var(--text-main)]">{document.name}</span>
+                  </div>
+                  <button
+                    id="btn-sidebar-header-rename"
+                    onClick={handleStartRename}
+                    className="p-1 rounded hover:bg-black/10 text-[var(--text-muted)] hover:text-blue-600 dark:hover:text-blue-400 transition-colors shrink-0 flex items-center gap-1 text-[10px] font-medium"
+                    title="Rename Document"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    <span>Rename</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Sidebar Tab Content */}
@@ -309,8 +388,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {document ? (
                 <div className="space-y-2.5 bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-black/5">
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-[var(--text-muted)]">File Name</div>
-                    <div className="font-medium text-[var(--text-main)] break-all">{document.name}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-[var(--text-muted)]">File Name</div>
+                      {!isEditingSidebarName && (
+                        <button
+                          id="btn-info-tab-rename"
+                          onClick={handleStartRename}
+                          className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold p-0.5"
+                        >
+                          <Pencil className="w-2.5 h-2.5" />
+                          <span>Rename</span>
+                        </button>
+                      )}
+                    </div>
+                    {isEditingSidebarName ? (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <input
+                          id="input-info-doc-name"
+                          type="text"
+                          value={editNameInput}
+                          onChange={(e) => setEditNameInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveSidebarName();
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              setIsEditingSidebarName(false);
+                            }
+                          }}
+                          autoFocus
+                          className="flex-1 px-2 py-1 text-xs rounded border border-blue-500 bg-white dark:bg-stone-900 text-[var(--text-main)] focus:outline-none ring-1 ring-blue-500"
+                        />
+                        <button
+                          id="btn-info-save-rename"
+                          onClick={handleSaveSidebarName}
+                          className="p-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                          title="Save (Enter)"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          id="btn-info-cancel-rename"
+                          onClick={() => setIsEditingSidebarName(false)}
+                          className="p-1 rounded bg-stone-500 hover:bg-stone-600 text-white"
+                          title="Cancel (Esc)"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="font-medium text-[var(--text-main)] break-all mt-0.5">{document.name}</div>
+                    )}
                   </div>
                   <div>
                     <div className="text-[10px] uppercase font-bold text-[var(--text-muted)]">Title</div>

@@ -95,6 +95,12 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const touchStartYRef = useRef<number | null>(null);
   const lastTapRef = useRef<number>(0);
 
+  // Hover and scrub state for interactive reading progress bar
+  const [isProgressBarHovered, setIsProgressBarHovered] = useState<boolean>(false);
+  const [hoveredProgressPage, setHoveredProgressPage] = useState<number | null>(null);
+  const [hoveredProgressPercent, setHoveredProgressPercent] = useState<number>(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
   // Direction tracking for smooth page slide and fade transitions
   const prevPageRef = useRef<number>(currentPage);
   const [direction, setDirection] = useState<number>(0);
@@ -728,6 +734,81 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       {document.type === 'markdown' && renderMarkdown()}
       {document.type === 'text' && renderPlainText()}
       {(document.type === 'comic' || document.type === 'image') && renderComicOrImages()}
+
+      {/* Visual Reading Progress Bar at the Bottom of DocumentViewer */}
+      {document.pageCount > 0 && (
+        <div
+          id="document-reading-progress-container"
+          ref={progressBarRef}
+          onMouseEnter={() => setIsProgressBarHovered(true)}
+          onMouseLeave={() => {
+            setIsProgressBarHovered(false);
+            setHoveredProgressPage(null);
+          }}
+          onMouseMove={(e) => {
+            if (!progressBarRef.current || document.pageCount <= 1) return;
+            const rect = progressBarRef.current.getBoundingClientRect();
+            const mouseX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+            const ratio = mouseX / rect.width;
+            const targetPage = Math.min(
+              document.pageCount,
+              Math.max(1, Math.round(ratio * (document.pageCount - 1)) + 1)
+            );
+            setHoveredProgressPage(targetPage);
+            setHoveredProgressPercent(Math.round(ratio * 100));
+          }}
+          onClick={(e) => {
+            if (!progressBarRef.current || document.pageCount <= 1) return;
+            const rect = progressBarRef.current.getBoundingClientRect();
+            const mouseX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+            const ratio = mouseX / rect.width;
+            const targetPage = Math.min(
+              document.pageCount,
+              Math.max(1, Math.round(ratio * (document.pageCount - 1)) + 1)
+            );
+            onPageChange(targetPage);
+          }}
+          className={`sticky bottom-0 left-0 right-0 z-40 w-full group cursor-pointer transition-all duration-200 select-none ${
+            isProgressBarHovered ? 'h-4 bg-black/30 dark:bg-white/15' : 'h-1.5 bg-black/10 dark:bg-white/10'
+          }`}
+          title={`Page ${currentPage} of ${document.pageCount} (${Math.round(
+            (currentPage / document.pageCount) * 100
+          )}%) • Click anywhere on bar to jump`}
+        >
+          {/* Active Reading Progress Fill Track */}
+          <div
+            id="document-reading-progress-fill"
+            className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 relative transition-all duration-150 ease-out shadow-xs"
+            style={{
+              width: `${Math.min(100, Math.max(0, (currentPage / document.pageCount) * 100))}%`,
+            }}
+          >
+            {/* Progress handle knob indicator on hover */}
+            <div
+              className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-amber-400 border-2 border-white dark:border-stone-900 rounded-full shadow-md transition-transform duration-150 ${
+                isProgressBarHovered ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+              }`}
+            />
+          </div>
+
+          {/* Hover Floating Tooltip with Page and Percentage */}
+          {isProgressBarHovered && hoveredProgressPage !== null && (
+            <div
+              className="absolute bottom-5 -translate-x-1/2 bg-stone-900/95 text-stone-100 text-[11px] font-medium px-2.5 py-1 rounded-lg shadow-xl border border-stone-700/80 pointer-events-none whitespace-nowrap flex items-center gap-1.5 backdrop-blur-xs animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                left: `${hoveredProgressPercent}%`,
+              }}
+            >
+              <span className="font-bold text-amber-400">Page {hoveredProgressPage}</span>
+              <span className="opacity-50">/</span>
+              <span>{document.pageCount}</span>
+              <span className="text-[10px] text-stone-400 font-mono">
+                ({Math.round((hoveredProgressPage / document.pageCount) * 100)}%)
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mobile Floating Bottom Bar for Page Navigation */}
       {document.pageCount > 1 && (
